@@ -6,6 +6,7 @@ use Composer\IO\IOInterface;
 use Composer\Plugin\PluginInterface;
 use Composer\Script\ScriptEvents;
 use Composer\Util\Filesystem;
+use Composer\Script\Event as ScriptEvent;
 
 /**
  * Class Plugin
@@ -91,13 +92,17 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 
   /**
    * Regenerate Spoom's package list on autoload-dump
+   *
+   * @param ScriptEvent $event
    */
-  public function onBeforeAutoloadDump() {
+  public function onBeforeAutoloadDump( ScriptEvent $event ) {
 
     $filesystem = new Filesystem();
     $tmp        = $this->composer->getRepositoryManager()->getLocalRepository()->getCanonicalPackages();
     array_unshift( $tmp, $this->composer->getPackage() );
 
+    $this->io->write( 'Spoom\Composer: Re-generating autoload files ' . ( $event->isDevMode() ? '(including dev)' : '' ) . '..' );
+    
     $list = [];
     foreach( $tmp as $package ) {
       if( $package->getType() == static::PACKAGE_TYPE ) {

@@ -3,10 +3,11 @@
 use Composer\Composer;
 use Composer\EventDispatcher\EventSubscriberInterface;
 use Composer\IO\IOInterface;
+use Composer\Package\PackageInterface;
 use Composer\Plugin\PluginInterface;
 use Composer\Script\ScriptEvents;
 use Composer\Util\Filesystem;
-use Composer\Script\Event as ScriptEvent;
+use Symfony\Component\Finder\SplFileInfo;
 
 /**
  * Class Plugin
@@ -52,6 +53,56 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
     // FIXME I'm not sure this will always be the path to the composer.json...
     $this->root      = rtrim( realpath( realpath( getcwd() ) ), '/' ) . '/';
     $this->directory = rtrim( realpath( realpath( $composer->getConfig()->get( 'vendor-dir' ) ) ), '/' ) . '/';
+
+    // extend composer with this custom installer
+    $installer = new Installer( $this, $io, $composer );
+    $composer->getInstallationManager()->addInstaller( $installer );
+  }
+
+  /**
+   * Regenerate Spoom's package list on autoload-dump
+   */
+  public function onBeforeAutoloadDump() {
+
+    // Composer call this AFTER the plugin remove, so we need this check to prevent a fatal error
+    clearstatcache();
+    if( file_exists( __DIR__ . '/Plugin.php' ) ) {
+
+      //
+      $filesystem = new Filesystem();
+      $tmp        = $this->composer->getRepositoryManager()->getLocalRepository()->getCanonicalPackages();
+      array_unshift( $tmp, $this->composer->getPackage() );
+
+      $list = [];
+      foreach( $tmp as $package ) {
+        if( $package->getType() == static::PACKAGE_TYPE ) {
+
+          // choose root directory based on the path (absolute path has no root) or package (main or vendor)
+          if( $package === $this->composer->getPackage() ) $directory = $this->root;
+          else $directory = $this->getDirectory( $package );
+
+          // process autoloader
+          $autoload = $package->getAutoload();
+          if( isset( $autoload[ 'psr-4' ] ) ) {
+            foreach( $autoload[ 'psr-4' ] as $namespace => $path ) {
+
+              // don't handle multi directory namespace
+              if( is_array( $path ) ) $this->io->writeError( 'Spoom\Composer: Ignoring multiple psr-4 namespaces of ' . $package->getPrettyName() );
+              else {
+
+                // normalize and ensure the trailing slash in the path
+                $list[ $namespace ] = $filesystem->normalizePath( ( $filesystem->isAbsolutePath( $path ) ? '' : $directory ) . $path ) . '/';
+              }
+            }
+          }
+        }
+      }
+
+      $this->io->write( 'Spoom\Composer: Generating autoload file for ' . count( $list ) . ' extension(s)' );
+      
+      // create autoload file from the package list
+      $this->writeAutoload( $list );
+    }
   }
 
   /**
@@ -91,45 +142,83 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
   }
 
   /**
-   * Regenerate Spoom's package list on autoload-dump
+   * Get absolute directory of a package
    *
-   * @param ScriptEvent $event
+   * @param PackageInterface $package
+   *
+   * @return string
    */
-  public function onBeforeAutoloadDump( ScriptEvent $event ) {
+  public function getDirectory( PackageInterface $package ) {
+    return $this->directory . $package->getPrettyName() . '/';
+  }
+  /**
+   * Get exposed file list from a package
+   *
+   * @param PackageInterface $package
+   * @param array            $map Relatice source and destination of file/directories
+   *
+   * @return array Absolute source and destination of files
+   */
+  public function getFileList( PackageInterface $package, $map ) {
+    $directory = $this->getDirectory( $package );
+    $result = [];
 
-    $filesystem = new Filesystem();
-    $tmp        = $this->composer->getRepositoryManager()->getLocalRepository()->getCanonicalPackages();
-    array_unshift( $tmp, $this->composer->getPackage() );
+    try {
 
-    $this->io->write( 'Spoom\Composer: Re-generating autoload files ' . ( $event->isDevMode() ? '(including dev)' : '' ) . '..' );
-    
-    $list = [];
-    foreach( $tmp as $package ) {
-      if( $package->getType() == static::PACKAGE_TYPE ) {
+      foreach( $map as $source => $destination ) {
+        if( !is_dir( $directory . $source ) ) $result[ $directory . $source ] = Autoload::DIRECTORY . $destination;
+        else {
 
-        $autoload = $package->getAutoload();
-        if( isset( $autoload[ 'psr-4' ] ) ) {
-          foreach( $autoload[ 'psr-4' ] as $namespace => $path ) {
+          $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator( $directory . $source, \RecursiveDirectoryIterator::SKIP_DOTS ),
+            \RecursiveIteratorIterator::SELF_FIRST
+          );
 
-            // don't handle multi directory namespace
-            if( is_array( $path ) ) $this->io->writeError( 'Spoom\Composer: Ignoring multiple psr-4 namespaces of ' . $package->getPrettyName() );
-            else {
-
-              // choose root directory based on the path (absolute path has no root) or package (main or vendor)
-              if( $filesystem->isAbsolutePath( $path ) ) $directory = '';
-              else if( $package === $this->composer->getPackage() ) $directory = $this->root;
-              else $directory = $this->directory . $package->getPrettyName() . '/';
-
-              // normalize and ensure the trailing slash in the path
-              $list[ $namespace ] = $filesystem->normalizePath( $directory . $path ) . '/';
+          foreach( $iterator as $item ) {
+            /** @var SplFileInfo $item */
+            if( !$item->isDir() ) {
+              $result[ $item->getRealPath() ] = Autoload::DIRECTORY . $destination . DIRECTORY_SEPARATOR . call_user_func( [ $iterator, 'getSubPathName' ] );
             }
           }
         }
       }
+
+    } catch( \Throwable $e ) {
+      $this->io->writeError( "Spoom\\Composer: Skip {$package->getPrettyName()} public copy, due to an error" );
     }
 
-    // create autoload file from the package list
-    $this->writeAutoload( $list );
+    return $result;
+  }
+  /**
+   * @param array $map Absolute source and destination of files
+   */
+  public function createFileList( $map ) {
+
+    $filesystem = new Filesystem();
+    foreach( $map as $source => $destination ) try {
+
+      $tmp = dirname( $destination );
+      $filesystem->ensureDirectoryExists( $tmp );
+
+      if( !file_exists( $destination ) ) copy( $source, $destination );
+      else {
+
+        // TODO implement better file matching 
+        $different = filesize( $source ) != filesize( $destination );
+        if( $different ) {
+          $this->io->writeError( "Spoom\\Composer: Skip '{$source}' path copy to '{$destination}', it's already exists" );
+        }
+
+      }
+    } catch( \Throwable $e ) {
+      $this->io->writeError( "Spoom\\Composer: Skip '{$source}' path copy to '{$destination}', due to an error" );
+    }
+  }
+  /**
+   * @param array $list Absolute files to remove
+   */
+  public function removeFileList( $list ) {
+    // TODO remove files from the list (and empty directories)
   }
 
   //

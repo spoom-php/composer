@@ -7,9 +7,15 @@
 class Autoload {
 
   /**
+   * Exposed files (for edit or generated) directory
+   *
+   * This should be at side by side with the vendor-dir
+   */
+  const DIRECTORY = __DIR__ . '/../../../spoom/';
+  /**
    * Absolute path for the Autoloader source file
    */
-  const FILE = __DIR__ . DIRECTORY_SEPARATOR . 'extension.php';
+  const FILE = self::DIRECTORY . 'extension.php';
 
   /**
    * @var static

@@ -64,7 +64,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
    */
   public function onBeforeAutoloadDump() {
 
-    // Composer call this AFTER the plugin remove, so we need this check to prevent a fatal error
+    // FIXME Composer call this AFTER the plugin remove, so we need this check to prevent a fatal error
     clearstatcache();
     if( file_exists( __DIR__ . '/Plugin.php' ) ) {
 
@@ -99,7 +99,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
       }
 
       $this->io->write( 'Spoom\Composer: Generating autoload file for ' . count( $list ) . ' extension(s)' );
-      
+
       // create autoload file from the package list
       $this->writeAutoload( $list );
     }
@@ -218,7 +218,35 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
    * @param array $list Absolute files to remove
    */
   public function removeFileList( $list ) {
-    // TODO remove files from the list (and empty directories)
+
+    // sort the list in desc mode, to iterate deeper paths first
+    usort( $list, function ( $a, $b ) { return strlen( $b ) - strlen( $a ); } );
+
+    // remove files, and collect directories
+    $clear = [];
+    foreach( $list as $path ) {
+      if( is_file( $path ) ) {
+
+        // check permission
+        if( !is_writeable( $path ) ) $this->io->writeError( "Spoom\\Composer: Skip '{$path}' path remove, no permission" );
+        else {
+
+          unlink( $path );
+          $clear[] = dirname( $path );
+        }
+      }
+    }
+
+    // remove empty directories
+    $clear = array_unique( $clear );
+    foreach( $clear as $path ) {
+      if( is_dir( $path ) && !( new \FilesystemIterator( $path ) )->valid() ) {
+
+        // check permission
+        if( !is_writeable( $path ) ) $this->io->writeError( "Spoom\\Composer: Skip '{$path}' path remove, no permission" );
+        else rmdir( $path );
+      }
+    }
   }
 
   //

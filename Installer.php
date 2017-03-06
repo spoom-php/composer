@@ -29,34 +29,6 @@ class Installer extends LibraryInstaller {
   public function install( InstalledRepositoryInterface $repo, PackageInterface $package ) {
     parent::install( $repo, $package );
 
-    //
-    $this->installExtension( $package );
-  }
-  //
-  public function update( InstalledRepositoryInterface $repo, PackageInterface $initial, PackageInterface $target ) {
-    parent::update( $repo, $initial, $target );
-
-    //
-    $this->updateExtension( $target, $initial );
-  }
-  //
-  public function uninstall( InstalledRepositoryInterface $repo, PackageInterface $package ) {
-    parent::uninstall( $repo, $package );
-
-    //
-    $this->uninstallExtension( $package );
-  }
-
-  //
-  public function supports( $packageType ) {
-    return $packageType === Plugin::PACKAGE_TYPE;
-  }
-
-  /**
-   * @param PackageInterface $package
-   */
-  protected function installExtension( PackageInterface $package ) {
-
     // process Spoom related extra informations
     $extra = $package->getExtra();
     if( isset( $extra[ 'spoom' ][ 'public' ] ) ) {
@@ -64,37 +36,46 @@ class Installer extends LibraryInstaller {
       $this->plugin->createFileList( $list );
     }
   }
-  /**
-   * @param PackageInterface $package
-   * @param PackageInterface $package_installed
-   */
-  protected function updateExtension( PackageInterface $package, PackageInterface $package_installed ) {
+  //
+  public function update( InstalledRepositoryInterface $repo, PackageInterface $initial, PackageInterface $target ) {
+    parent::update( $repo, $initial, $target );
+
     $list = [];
 
     // process Spoom public files
-    $extra = $package->getExtra();
+    $extra = $target->getExtra();
     if( isset( $extra[ 'spoom' ][ 'public' ] ) ) {
-      $list = $this->plugin->getFileList( $package, $extra[ 'spoom' ][ 'public' ] );
+      $list = $this->plugin->getFileList( $target, $extra[ 'spoom' ][ 'public' ] );
       $this->plugin->createFileList( $list );
     }
 
     // remove unnecessary files and directories
-    $extra = $package->getExtra();
+    $extra = $initial->getExtra();
     if( isset( $extra[ 'spoom' ][ 'public' ] ) ) {
-      $list = array_diff( $this->plugin->getFileList( $package_installed, $extra[ 'spoom' ][ 'public' ] ), $list );
+      $list = array_diff( $this->plugin->getFileList( $initial, $extra[ 'spoom' ][ 'public' ] ), $list );
       $this->plugin->removeFileList( array_values( $list ) );
     }
   }
-  /**
-   * @param PackageInterface $package
-   */
-  protected function uninstallExtension( PackageInterface $package ) {
+  //
+  public function uninstall( InstalledRepositoryInterface $repo, PackageInterface $package ) {
 
-    // remove unnecessary files and directories
+    // collect removeable files for the extension
     $extra = $package->getExtra();
     if( isset( $extra[ 'spoom' ][ 'public' ] ) ) {
       $list = $this->plugin->getFileList( $package, $extra[ 'spoom' ][ 'public' ] );
+    }
+
+    // uninstall package as normal
+    parent::uninstall( $repo, $package );
+
+    // remove the collected files
+    if( !empty( $list ) ) {
       $this->plugin->removeFileList( array_values( $list ) );
     }
+  }
+
+  //
+  public function supports( $packageType ) {
+    return $packageType === Plugin::PACKAGE_TYPE;
   }
 }

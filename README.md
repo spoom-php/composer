@@ -8,11 +8,11 @@ like the following:
 
 ```json
 {
-    "type": "spoom-extension",
-    "require": {
-        "spoom-php/composer": "^1.0.0"
-    },
-    ...
+  "type": "spoom-extension",
+  "require": {
+    "spoom-php/composer": "^1.0.0"
+  },
+  ...
 }
 ```
 
@@ -24,3 +24,25 @@ begins with the file's name, and the remain part MUST be separated with an upper
   - *Example.php*
   - *ExampleClass.php*
   - *ExampleClassInterface.php*
+
+# Public files
+Extensions can define directories (or files) to copy into the Spoom's public directory during the installation process. It's useful for editable configuration
+or localization files. This can be done with adding an `extra` information into `composer.json`:
+
+```json
+{
+  "extra": {
+    "spoom": {
+      ...,
+      "public": {
+        "relative/path/to/source/": "relative/target/path/",
+        "Autoload.php": "spoom-composer/directory/Autoload.php",
+        ...
+      }
+    }
+  },
+  ...
+}
+```
+
+Target path SHOULD start with a directory named after extension's id and it will be relative from the `Autoload::DIRECTORY` directory.

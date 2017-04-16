@@ -3,12 +3,13 @@
   "description": "Autoloader (for nested classes) and installer for the Spoom framework",
   "keywords": [ "spoom", "composer", "autoload" ],
   "type": "composer-plugin",
+  "license": "MIT",
   "authors": [
     {
-      "name": "Nagy Samu",
-      "email": "nagy.samu222@gmail.com"
+      "name": "Nagy Samu"
     }
   ],
+
   "require": {
     "php": "^7.0",
     "composer-plugin-api": "^1.0"
@@ -16,6 +17,7 @@
   "require-dev": {
     "composer/composer": "^1.0"
   },
+
   "autoload": {
     "files": [ "Autoload.php" ],
     "psr-4": {

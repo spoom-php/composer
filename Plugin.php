@@ -51,8 +51,9 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 
     //
     // FIXME I'm not sure this will always be the path to the composer.json...
-    $this->root      = rtrim( realpath( realpath( getcwd() ) ), '/' ) . '/';
-    $this->directory = rtrim( realpath( realpath( $composer->getConfig()->get( 'vendor-dir' ) ) ), '/' ) . '/';
+    $filesystem      = new Filesystem();
+    $this->root      = rtrim( $filesystem->normalizePath( realpath( realpath( getcwd() ) ) ), '/' ) . '/';
+    $this->directory = rtrim( $filesystem->normalizePath( realpath( realpath( $composer->getConfig()->get( 'vendor-dir' ) ) ) ), '/' ) . '/';
 
     // extend composer with this custom installer
     $installer = new Installer( $this, $io, $composer );
@@ -124,11 +125,16 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
       $content = [];
       foreach( $list as $namespace => $path ) {
 
+        // detect if the path can be relative (then remove the root)
+        $is_absolute = substr( $path, 0, strlen( $this->root ) ) != $this->root;
+        if( !$is_absolute ) $path = substr( $path, strlen( $this->root ) );
+
         $count     = substr_count( $namespace, '\\' );
         $namespace = str_replace( [ '\\', "'" ], [ '\\\\', "\\'" ], $namespace );
         $path      = str_replace( [ '\\', "'" ], [ '\\\\', "\\'" ], $path );
 
-        $content[] = "  '{$namespace}' => [ '{$path}', {$count} ]";
+        $prefix    = $is_absolute ? "'" : "__DIR__ . '/../";
+        $content[] = "  '{$namespace}' => [ {$prefix}{$path}', {$count} ]";
       }
 
       // 
@@ -161,7 +167,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
    */
   public function getFileList( PackageInterface $package, $map ) {
     $directory = $this->getDirectory( $package );
-    $result = [];
+    $result    = [];
 
     try {
 

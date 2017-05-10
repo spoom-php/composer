@@ -11,8 +11,7 @@ like the following:
   "type": "spoom-extension",
   "require": {
     "spoom-php/composer": "^1.0.0"
-  },
-  ...
+  }
 }
 ```
 
@@ -33,15 +32,12 @@ or localization files. This can be done with adding an `extra` information into 
 {
   "extra": {
     "spoom": {
-      ...,
       "public": {
         "relative/path/to/source/": "relative/target/path/",
-        "Autoload.php": "spoom-composer/directory/Autoload.php",
-        ...
+        "Autoload.php": "spoom-composer/directory/Autoload.php"
       }
     }
-  },
-  ...
+  }
 }
 ```
 

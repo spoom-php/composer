@@ -12,7 +12,7 @@ class Autoload {
   /**
    * Absolute path for the Autoloader source file
    */
-  const FILE = self::DIRECTORY . 'extension.php';
+  const FILE = self::DIRECTORY . 'package.php';
 
   /**
    * @var static
@@ -78,7 +78,7 @@ class Autoload {
       $path = explode( '\\', $class );
       $name = array_pop( $path );
 
-      // try first the custom paths (custom autoload path support)
+      // iterate trough the autloader paths
       foreach( $this->definition as $namespace => list( $directory, $length ) ) {
         if( strpos( $class, $namespace ) === 0 ) {
 
@@ -122,9 +122,9 @@ class Autoload {
   /**
    * Split the class name into subclassnames through the camel or TitleCase. The full classname is not included in the result array
    *
-   * @example `FrameworkImport::tokenize( 'My0NestedClass' ) // [ 'My0', 'My0Nested' ]`
-   * @example `FrameworkImport::explode( 'MY0NestedClass' ) // [ 'MY0', 'MY0Nested' ]`
-   * @example `FrameworkImport::explode( 'MY0Nested' ) // [ 'MY0' ]`
+   * @example `Autoload::explode( 'My0NestedClass' ) // [ 'My0', 'My0Nested' ]`
+   * @example `Autoload::explode( 'MY0NestedClass' ) // [ 'MY0', 'MY0Nested' ]`
+   * @example `Autoload::explode( 'MY0Nested' ) // [ 'MY0' ]`
    *
    * @param string $name The original classname
    *

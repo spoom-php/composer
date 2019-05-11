@@ -1,6 +1,6 @@
 {
   "name": "spoom-php/composer",
-  "description": "Autoloader (for nested classes) and installer for the Spoom framework",
+  "description": "Autoloader (for nested classes) and installer for the Spoom packages",
   "keywords": [ "spoom", "composer", "autoload" ],
   "type": "composer-plugin",
   "license": "MIT",

@@ -7,10 +7,7 @@ use Composer\Installer\LibraryInstaller;
 use Composer\Plugin\PluginInterface;
 use Composer\Repository\InstalledRepositoryInterface;
 
-/**
- * Class Installer
- * @package Spoom\Composer
- */
+//
 class Installer extends LibraryInstaller {
 
   /**
@@ -59,7 +56,7 @@ class Installer extends LibraryInstaller {
   //
   public function uninstall( InstalledRepositoryInterface $repo, PackageInterface $package ) {
 
-    // collect removeable files for the extension
+    // collect removeable files for the packages
     $extra = $package->getExtra();
     if( isset( $extra[ 'spoom' ][ 'public' ] ) ) {
       $list = $this->plugin->getFileList( $package, $extra[ 'spoom' ][ 'public' ] );

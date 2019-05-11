@@ -1,13 +1,10 @@
 <?php namespace Spoom\Composer;
 
-/**
- * Class Autoload
- * @package Spoom\Composer
- */
+//
 class Autoload {
 
   /**
-   * Exposed files (for edit or generated) directory
+   * Resource files (for edit or generated) directory
    *
    * This should be at side by side with the vendor-dir
    */
@@ -15,7 +12,7 @@ class Autoload {
   /**
    * Absolute path for the Autoloader source file
    */
-  const FILE = self::DIRECTORY . 'extension.php';
+  const FILE = self::DIRECTORY . 'package.php';
 
   /**
    * @var static
@@ -25,14 +22,15 @@ class Autoload {
   /**
    * Store the custom namespace connections to their root paths
    *
-   * @var array[string]
+   * @var array<string,string>
    */
   private $definition = [];
 
   /**
-   * @param $path
+   * @param string $path
+   * @param bool   $prepend
    */
-  protected function __construct( $path ) {
+  protected function __construct( string $path, bool $prepend = false ) {
 
     if( is_file( $path ) ) {
 
@@ -40,7 +38,7 @@ class Autoload {
       $this->definition = require $path;
     }
 
-    if( !empty( $this->definition ) ) $this->attach();
+    if( !empty( $this->definition ) ) $this->attach( $prepend );
   }
 
   /**
@@ -80,7 +78,7 @@ class Autoload {
       $path = explode( '\\', $class );
       $name = array_pop( $path );
 
-      // try first the custom paths (custom autoload path support)
+      // iterate trough the autloader paths
       foreach( $this->definition as $namespace => list( $directory, $length ) ) {
         if( strpos( $class, $namespace ) === 0 ) {
 
@@ -104,7 +102,7 @@ class Autoload {
    *
    * @return bool True if the file was successfully loaded
    */
-  protected function search( $name, $path, $root ) {
+  protected function search( string $name, array $path, string $root ): bool {
 
     // check root existance and then try to find the original full named class file
     $path = ltrim( implode( DIRECTORY_SEPARATOR, $path ) . DIRECTORY_SEPARATOR, DIRECTORY_SEPARATOR );
@@ -124,15 +122,15 @@ class Autoload {
   /**
    * Split the class name into subclassnames through the camel or TitleCase. The full classname is not included in the result array
    *
-   * @example `FrameworkImport::tokenize( 'My0NestedClass' ) // [ 'My0', 'My0Nested' ]`
-   * @example `FrameworkImport::explode( 'MY0NestedClass' ) // [ 'MY0', 'MY0Nested' ]`
-   * @example `FrameworkImport::explode( 'MY0Nested' ) // [ 'MY0' ]`
+   * @example `Autoload::explode( 'My0NestedClass' ) // [ 'My0', 'My0Nested' ]`
+   * @example `Autoload::explode( 'MY0NestedClass' ) // [ 'MY0', 'MY0Nested' ]`
+   * @example `Autoload::explode( 'MY0Nested' ) // [ 'MY0' ]`
    *
    * @param string $name The original classname
    *
    * @return string[] desc ordered classname "tokens"
    */
-  protected function explode( $name ) {
+  protected function explode( string $name ): array {
 
     $result  = [];
     $buffer  = '';
@@ -168,7 +166,7 @@ class Autoload {
    *
    * @return bool True if a file exist and successfully readed
    */
-  protected static function read( $name, $path, $root ) {
+  protected static function read( string $name, string $path, string $root ): bool {
 
     $file = $root . $path . $name;
     if( is_file( ( $tmp = $file . '.php' ) ) ) include $tmp;
@@ -189,8 +187,8 @@ class Autoload {
    *
    * @return bool True, if already loaded
    */
-  public static function exist( $name ) {
-    return class_exists( $name, false ) || interface_exists( $name, false ) || trait_exists( $name );
+  public static function exist( string $name ): bool {
+    return class_exists( $name, false ) || interface_exists( $name, false ) || trait_exists( $name, false );
   }
 
   /**
@@ -201,5 +199,5 @@ class Autoload {
   }
 }
 
-// 
+//
 Autoload::instance();

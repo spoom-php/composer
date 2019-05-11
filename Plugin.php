@@ -9,16 +9,21 @@ use Composer\Script\ScriptEvents;
 use Composer\Util\Filesystem;
 use Symfony\Component\Finder\SplFileInfo;
 
-/**
- * Class Plugin
- * @package Spoom\Composer
- */
+//
 class Plugin implements PluginInterface, EventSubscriberInterface {
 
   /**
-   * The Spoom's package type for extensions
+   * The Spoom's package type
    */
-  const PACKAGE_TYPE = 'spoom-extension';
+  const PACKAGE_TYPE = 'spoom';
+  /**
+   * The Spoom's legacy package (extension) type
+   *
+   * This should be removed after v2.0.0
+   *
+   * @deprecated
+   */
+  const PACKAGE_TYPE_LEGACY = 'spoom-extension';
 
   /**
    * @var Composer
@@ -76,7 +81,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 
       $list = [];
       foreach( $tmp as $package ) {
-        if( $package->getType() == static::PACKAGE_TYPE ) {
+        if( in_array( $package->getType(), [ static::PACKAGE_TYPE, static::PACKAGE_TYPE_LEGACY ] ) ) {
 
           // choose root directory based on the path (absolute path has no root) or package (main or vendor)
           if( $package === $this->composer->getPackage() ) $directory = $this->root;
@@ -99,7 +104,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
         }
       }
 
-      $this->io->write( 'Spoom\Composer: Generating autoload file for ' . count( $list ) . ' extension(s)' );
+      $this->io->write( 'Spoom\Composer: Generating autoload file for ' . count( $list ) . ' package(s)' );
 
       // create autoload file from the package list
       $this->writeAutoload( $list );
@@ -137,7 +142,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
         $content[] = "  '{$namespace}' => [ {$prefix}{$path}', {$count} ]";
       }
 
-      // 
+      //
       file_put_contents( $file, "<?php return [\n" . implode( ",\n", $content ) . "\n];\n" );
 
       // invalidate opcache
@@ -209,7 +214,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
       if( !file_exists( $destination ) ) copy( $source, $destination );
       else {
 
-        // TODO implement better file matching 
+        // TODO implement better file matching
         $different = filesize( $source ) != filesize( $destination );
         if( $different ) {
           $this->io->writeError( "Spoom\\Composer: Skip '{$source}' path copy to '{$destination}', it's already exists" );

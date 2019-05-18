@@ -19,9 +19,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
   /**
    * The Spoom's legacy package (extension) type
    *
-   * This should be removed after v2.0.0
-   *
-   * @deprecated
+   * @deprecated Use `PACKAGE_TYPE`, this should be removed after v2.0.0
    */
   const PACKAGE_TYPE_LEGACY = 'spoom-extension';
 

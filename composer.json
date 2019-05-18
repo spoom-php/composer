@@ -19,9 +19,9 @@
   },
 
   "autoload": {
-    "files": [ "Autoload.php" ],
+    "files": [ "src/library/Autoload.php" ],
     "psr-4": {
-      "Spoom\\Composer\\": ""
+      "Spoom\\Composer\\": "src/library/"
     }
   },
   "extra": {

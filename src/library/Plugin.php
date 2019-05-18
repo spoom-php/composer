@@ -7,7 +7,6 @@ use Composer\Package\PackageInterface;
 use Composer\Plugin\PluginInterface;
 use Composer\Script\ScriptEvents;
 use Composer\Util\Filesystem;
-use Symfony\Component\Finder\SplFileInfo;
 
 //
 class Plugin implements PluginInterface, EventSubscriberInterface {
@@ -195,7 +194,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
       }
 
     } catch( \Throwable $e ) {
-      $this->io->writeError( "Spoom\\Composer: Skip {$package->getPrettyName()} public copy, due to an error" );
+      $this->io->writeError( "Spoom\\Composer: Skip {$package->getPrettyName()} public copy, due to an error: " . $e->getMessage() );
     }
 
     return $result;
@@ -222,7 +221,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface {
 
       }
     } catch( \Throwable $e ) {
-      $this->io->writeError( "Spoom\\Composer: Skip '{$source}' path copy to '{$destination}', due to an error" );
+      $this->io->writeError( "Spoom\\Composer: Skip '{$source}' path copy to '{$destination}', due to an error: " . $e->getMessage() );
     }
   }
   /**

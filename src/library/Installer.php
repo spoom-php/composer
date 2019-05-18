@@ -73,6 +73,6 @@ class Installer extends LibraryInstaller {
 
   //
   public function supports( $packageType ) {
-    return $packageType === Plugin::PACKAGE_TYPE;
+    return in_array( $packageType, [ Plugin::PACKAGE_TYPE, Plugin::PACKAGE_TYPE_LEGACY ], true );
   }
 }
